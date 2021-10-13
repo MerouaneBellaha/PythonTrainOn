@@ -6,29 +6,21 @@ import logging
 
 # ASK: what is __name__
 log = logging.getLogger(__name__) 
-
+from logging.handlers import RotatingFileHandler
 
 import requests
-from requests.auth import HTTPBasicAuth
-import json
 import time
 import os
 import sys
-import argparse
 from datetime import datetime
 
-# # ------------------------------
-# # LOGpip
-# # ------------------------------
-# LOG_FILE_LEVEL       = 'DEBUG'
-# LOG_STDOUT_LEVEL     = 'INFO'
-# LOG_FILE_NB_MAX_BYTE = 10000000
-# # ------------------------------
-# # WHERE AM I, WHO AM I
-# # ------------------------------
-# SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
-# SCRIPT_NAME = os.path.basename(sys.argv[0])
-
+# ------------------------------
+# LOGpip
+# ------------------------------
+LOG_FILE_LEVEL       = 'DEBUG'
+LOG_STDOUT_LEVEL     = 'INFO'
+LOG_FILE_NB_MAX_BYTE = 10000000
+# ------------------------------
 
 # ------------------------------
 # SCRIPT FILE INFO
@@ -52,6 +44,22 @@ API_KEY_KEY = 'API_KEY'
 # ------------------------------
 def sourceEnvLog(key):
     return f'You need to source environment variables (no {key} found in OS env)'
+
+# ------------------------------
+# LOG
+# ------------------------------
+def setLog():
+    logger = logging.getLogger()
+    logger.setLevel(LOG_FILE_LEVEL)
+    formatter = logging.Formatter('%(asctime)s %(process)d %(levelname)s %(message)s')
+    logFile = os.path.join(SCRIPT_PATH, os.path.splitext(SCRIPT_NAME)[0] + '{}'.format(datetime.now().strftime("%Y-%m-%dT%H:%M:%S")) + '.log')
+    file_handler = RotatingFileHandler(logFile, 'a', LOG_FILE_NB_MAX_BYTE, 1)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(LOG_STDOUT_LEVEL)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
 
 # ------------------------------
 # ENVIRONEMENT VARIABLE
@@ -107,10 +115,13 @@ def getGifForQuery(log, base_url, api_key, query):
       log.error('Fail to get a 200 HTTP response on : {}, nb_retry={}'.format(end_point, NB_TRY_REQUEST))
     number_of_try_request += 1
 
+    result = '{};{};{}'.format(query, response.status_code, response.text.rstrip())
+    log.debug(result)
   return response.json()
 
 
 def main():
+    setLog()
     (base_url, api_key) = setEnvVar()
 
     with open(INPUT_FILEPATH, 'r') as input_file:
